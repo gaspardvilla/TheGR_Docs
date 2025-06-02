@@ -9,6 +9,7 @@ import { useResponsiveStore } from '@/stores';
 
 import { useResponsiveDocGrid } from '../hooks/useResponsiveDocGrid';
 
+import DocsAiAgent from './DocsAiAgent';
 import { DocsGridItem } from './DocsGridItem';
 import { DocsGridLoader } from './DocsGridLoader';
 
@@ -140,6 +141,7 @@ export const DocsGrid = ({
           </Box>
         )}
       </Card>
+      <DocsAiAgent></DocsAiAgent>
     </Box>
   );
 };
