@@ -114,7 +114,7 @@ export default function FloatingChat() {
               <div
                 className="chat-avatar"
                 onClick={() => setGeekViewCounter(geekViewCounter + 1)}
-                onKeyDown={() => { }}
+                onKeyDown={() => {}}
                 role="button"
                 tabIndex={0}
               >

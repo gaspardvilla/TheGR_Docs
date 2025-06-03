@@ -9,7 +9,7 @@ from openai import OpenAI
 from core import enums
 from core.models import *
 
-AI_ACTIONS = {# {{{
+AI_ACTIONS = {
     "prompt": (
         "Answer the prompt in markdown format. "
         "Preserve the language and markdown formatting. "
@@ -50,19 +50,10 @@ AI_TRANSLATE = (
     "Translate the content in the html to the specified language {language:s}. "
     "Check the translation for accuracy and make any necessary corrections. "
     "Do not provide any other information."
-)# }}}
+)
 
 class AIAgent:
     "AI Agent class"
-
-    def process_input(self, prompt, db_context):
-        messages = []
-
-        for context in db_context:
-            messages.append({"role": "system", "content": context})
-
-        messages.append({"role": "user", "content": f"Give me the SQL query to answer this question: {prompt}"})
-        return messages
 
 
     def extract_sql(self, output):
@@ -91,7 +82,6 @@ class AIAgent:
 
 
     def check_query(self, query):
-        print(f"QUERY: {query}")
         if "DELETE" in query:
             return False
         if "INSERT" in query:
@@ -109,22 +99,14 @@ class AIAgent:
         url = "https://albert.api.etalab.gouv.fr/v1"
         key = "sk-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo4NDE2LCJ0b2tlbl9pZCI6MTQ4NSwiZXhwaXJlc19hdCI6MTc4MDM1MTIwMH0.7VHhWl1KUfMCfxwZ_bTVS2McIsY3qsP5Gcc6dQqb6Wg"
         client = OpenAI(base_url = url, api_key = key)
-        response = client.chat.completions.create(model="albert-small", messages=data)
-        # TODO use this to run query
-        query = self.extract_sql(response.choices[0].message.content)
         results = []
         step = 0
-
-        # with connection.cursor() as cursor:
-        #     if self.check_query(query):
-        #         cursor.execute(query)
-        #         results = cursor.fetchall()
-        #     else: 
-        #         return {"prompt": query, 
-        #                 "answer": "It seams like you are trying to modify the database. This is not allowed."}
+        query = ""
 
         while step < 10:
-            print("PROMPTING...")
+            response = client.chat.completions.create(model="albert-small", messages=data)
+            query = self.extract_sql(response.choices[0].message.content)
+
             try :
                 with connection.cursor() as cursor:
                     if self.check_query(query):
@@ -133,11 +115,12 @@ class AIAgent:
                     else: 
                         return {"prompt": query, 
                                 "answer": "It seams like you are trying to modify the database. This is not allowed."}
-                break;
+                step = 10
+                break
 
             except Exception as e:
-                data = self.refresh_context(e)
                 step += 1
+                data.append(self.refresh_context(e, step))
                 continue
 
         final_context = self.give_final_context(results, self.prompt)
@@ -148,10 +131,38 @@ class AIAgent:
                 )
         return {"prompt": query, "answer": final_response.choices[0].message.content}
 
-    def refresh_context(self, data):
+    def refresh_context(self, error, step):
         prompt = {}
         prompt["role"] = "system"
-        prompt["content"] = f"you had the following error is {data}"
+        prompt["content"] = f"With the same prompt at step {step}, you had the following error: {error}."
+        return prompt
+
+
+    def initial_context(self, username):
+        data = [] 
+
+        prompt = {}
+        content = """
+            Given an input question, create a syntactically correct postgres query to
+            run to help find the answer. Unless the user specifies in his question a
+            specific number of examples they wish to obtain, always limit your query to
+            at most 5 results. You can order the results by a relevant column to
+            return the most interesting examples in the database.
+
+            Never query for all the columns from a specific table, only ask for a the
+            few relevant columns given the question.
+
+            Pay attention to use only the column names that you can see in the schema
+            description. Be careful to not query for columns that do not exist. Also,
+            pay attention to which column is in which table. \n
+            """
+
+        prompt["role"] = "system"
+        prompt["content"] = content + "user email address = " + username + "\n"
+
+        data.append(prompt)
+
+        return data
 
 
     def make_context(self, model):
@@ -169,6 +180,7 @@ class AIAgent:
 
         for field in fields:
             content += space + field.name + " is of type " + field.get_internal_type()
+
 
         content += "."
         res = { }
@@ -195,36 +207,36 @@ class AIAgent:
 
         return messages
 
-    
     def process_input(self, input_text):
         data = self.get_prompt_context()
+        prompt = {}
         self.prompt = input_text
 
-        prompt = {}
         prompt["role"] = "user"
-        prompt["content"] = f"Give me a SQL command answering the following question : {input_text}"
-        # prompt["content"] = f"Give me a SQL query to answer this question related to the database given in the context (system): {input_text}"
+        prompt["content"] = f"Give me a SQL command (template ```sqlcommand```) answering the following question : {input_text}"
 
         data.append(prompt)
         return data
 
     def add_user_in_context(self, username):
-        print("USERNAME", username)
         prompt = {}
         prompt["role"] = "system"
-        prompt["context"] = " Always identify users by their email. If a certain particular user is asked for, look for it's email. The user prompting you have the following email : " + username
+        prompt["context"] = "my email address is " + username
         return prompt
 
     def perform(self, input_text, username):
-        data = self.process_input(input_text)
-        print("------------------------------")
-        print("TYPE OF ",type(username))
-        if len(username) != 0:
-            print("USERNAME", username)
-            usercontext = self.add_user_in_context(username)
-            data.append(usercontext)
+
+        init_data = self.initial_context(username)
+        user_prompt = {}
+
+        extra_data = self.process_input(input_text)
+
+        for dico in extra_data[:-1]:
+            init_data[0]["content"] += "\n" + dico["content"]
+
+        data = init_data + [extra_data[-1]]
+
         results = self.pipeline(data)
-        print("------------------------------")
         return results
 
 
