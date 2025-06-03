@@ -1,13 +1,28 @@
 import React, { useState } from 'react';
 
+import { useDocAIAgent } from '../../doc-editor/api/useDocAIAgent';
+
 export default function FloatingChat() {
   const [open, setOpen] = useState(Boolean);
   const [messages, setMessages] = useState(Array<string>);
   const [input, setInput] = useState(String);
+  const { mutateAsync: requestAI, isPending } = useDocAIAgent();
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim()) {
       setMessages([...messages, input]);
+
+      const responseAI = await requestAI({
+        prompt: input,
+      });
+
+      if (!responseAI?.answer) {
+        throw new Error('No response from AI');
+      }
+
+      setMessages([...messages, responseAI.answer]);
+      console.log('RESPONSE ANSWER : ', responseAI.answer);
+
       setInput('');
     }
   };
