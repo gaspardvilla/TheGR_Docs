@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import { useDocAIAgent } from '../../doc-editor/api/useDocAIAgent';
+
 type Message = {
   text: string;
   sender: string;
@@ -20,12 +22,35 @@ export default function FloatingChat() {
   // Refs
   const chatMessageEl = React.useRef<HTMLDivElement>(null);
 
+  // Custom hooks
+  const { mutateAsync: requestAI } = useDocAIAgent();
+
   // Handle message sending
   const handleSentMessage = () => {
     const trimmed = input.trim();
     if (trimmed) {
+      // Add user message in chat
       const newMessages = [...messages, { text: trimmed, sender: 'user' }];
       setMessages(newMessages);
+
+      requestAI({
+        prompt: input,
+      })
+        .then((responseAI) => {
+          if (!responseAI?.answer) {
+            throw new Error('No response from AI');
+          } else {
+            handleAgentAnswer({
+              answer: responseAI.answer,
+              query: responseAI.query,
+            });
+            console.log('RESPONSE ANSWER : ', responseAI.answer);
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+
       setInput('');
       setAgentWriting(true);
 
@@ -34,10 +59,10 @@ export default function FloatingChat() {
       // const aiResponse = await aiRequest.json();
 
       // Fake aiResponse answer
-      handleAgentAnswer({
-        answer: `Hello ${trimmed}`,
-        query: 'SELECT * FROM table',
-      });
+      // handleAgentAnswer({
+      //   answer: `Hello ${trimmed}`,
+      //   query: 'SELECT * FROM table',
+      // });
     }
   };
 

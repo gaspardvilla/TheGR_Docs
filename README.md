@@ -1,4 +1,4 @@
-<p align="center">
+l<p align="center">
   <a href="https://github.com/suitenumerique/docs">
     <img alt="Docs" src="/docs/assets/banner-docs.png" width="100%" />
   </a>

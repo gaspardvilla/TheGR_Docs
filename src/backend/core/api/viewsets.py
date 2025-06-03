@@ -4,6 +4,7 @@
 import json
 import logging
 import uuid
+from typing import Any
 from urllib.parse import unquote, urlencode, urlparse
 
 from django.conf import settings
@@ -28,13 +29,14 @@ from botocore.exceptions import ClientError
 from knox.auth import TokenAuthentication
 from lasuite.malware_detection import malware_detection
 from lasuite.oidc_resource_server.authentication import ResourceServerAuthentication
+from openai import OpenAI
 from rest_framework import filters, status, viewsets
 from rest_framework import response as drf_response
 from rest_framework.permissions import AllowAny
 from rest_framework.throttling import UserRateThrottle
 
 from core import authentication, enums, models
-from core.services.ai_services import AIService
+from core.services.ai_services import AIAgent, AIService
 from core.services.collaboration_services import CollaborationService
 from core.utils import extract_attachments, filter_descendants
 
@@ -150,7 +152,7 @@ class UserViewSet(
 ):
     """User ViewSet"""
 
-    permission_classes = [permissions.IsSelf]
+    permission_classes = [permissions.IsSelf]# {{{
     queryset = models.User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     pagination_class = None
@@ -200,9 +202,9 @@ class UserViewSet(
             .annotate(similarity=TrigramSimilarity("email", query))
             .filter(similarity__gt=0.2)
             .order_by("-similarity", "email")[: settings.API_USERS_LIST_LIMIT]
-        )
+        )# }}}
 
-    @drf.decorators.action(
+    @drf.decorators.action(# {{{
         detail=False,
         methods=["get"],
         url_name="me",
@@ -217,6 +219,35 @@ class UserViewSet(
         return drf.response.Response(
             self.serializer_class(request.user, context=context).data
         )
+        # }}}
+
+    @drf.decorators.action(# AI AGENT {{{
+        detail=False,
+        methods=["post"],
+        url_name="ai-agent",
+        url_path="ai-agent",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def ai_perform_action(self, request, *args, **kwargs):
+        """
+        POST /api/v1.0/users/ai-perform
+        with expected data:
+        - text: str, the user's prompt
+        Return JSON response with the processed text.
+
+        """
+        serializer = serializers.AIAgentSerializer(data=request.data)
+
+        serializer.is_valid(raise_exception=True) 
+        prompt = serializer.validated_data["prompt"]
+
+        response = AIAgent().perform(prompt)
+
+        # TODO make sure response is of the right format
+        return drf.response.Response(response, status=drf.status.HTTP_200_OK)
+        # context = {"request": request}
+    # }}}
+
 
 
 class ResourceAccessViewsetMixin:

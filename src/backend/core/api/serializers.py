@@ -686,6 +686,18 @@ class AITransformSerializer(serializers.Serializer):
             raise serializers.ValidationError("Text field cannot be empty.")
         return value
 
+class AIAgentSerializer(serializers.Serializer):
+    """Serializer for AI Agent requests."""
+
+    prompt = serializers.CharField(required=True)
+
+    def validate_text(self, value):
+        """Ensure the text field is not empty."""
+
+        if len(value.strip()) == 0:
+            raise serializers.ValidationError("Text field cannot be empty.")
+        return value
+
 
 class AITranslateSerializer(serializers.Serializer):
     """Serializer for AI translate requests."""
