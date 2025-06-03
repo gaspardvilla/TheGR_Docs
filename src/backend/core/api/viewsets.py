@@ -240,12 +240,11 @@ class UserViewSet(
 
         serializer.is_valid(raise_exception=True) 
         prompt = serializer.validated_data["prompt"]
+        username = self.serializer_class(request.user).data["email"]
 
-        response = AIAgent().perform(prompt)
+        response = AIAgent().perform(input_text=prompt, username=username)
 
-        # TODO make sure response is of the right format
         return drf.response.Response(response, status=drf.status.HTTP_200_OK)
-        # context = {"request": request}
     # }}}
 
 

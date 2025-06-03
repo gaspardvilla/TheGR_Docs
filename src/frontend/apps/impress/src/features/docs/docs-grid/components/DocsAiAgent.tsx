@@ -59,16 +59,6 @@ export default function FloatingChat() {
 
       setInput('');
       setAgentWriting(true);
-
-      // TODO : Fetch request
-      // const aiRequest = await fetch('{endpoint}');
-      // const aiResponse = await aiRequest.json();
-
-      // Fake aiResponse answer
-      // handleAgentAnswer({
-      //   answer: `Hello ${trimmed}`,
-      //   query: 'SELECT * FROM table',
-      // });
     }
   };
 
@@ -124,7 +114,7 @@ export default function FloatingChat() {
               <div
                 className="chat-avatar"
                 onClick={() => setGeekViewCounter(geekViewCounter + 1)}
-                onKeyDown={() => {}}
+                onKeyDown={() => { }}
                 role="button"
                 tabIndex={0}
               >

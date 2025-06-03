@@ -79,8 +79,8 @@ class AIAgent:
             },
             {
                 "role": "system",
-                # "content": "If no results are found, answer with 'No results found.'",
-                "content": "If no results are found, answer with a joke",
+                "content": "If no results are found, answer with 'No results found.'",
+                # "content": "If no results are found, answer with a joke",
             },
             {
                 "role": "user",
@@ -91,6 +91,7 @@ class AIAgent:
 
 
     def check_query(self, query):
+        print(f"QUERY: {query}")
         if "DELETE" in query:
             return False
         if "INSERT" in query:
@@ -112,14 +113,32 @@ class AIAgent:
         # TODO use this to run query
         query = self.extract_sql(response.choices[0].message.content)
         results = []
+        step = 0
 
-        if self.check_query(query):
-            with connection.cursor() as cursor:
-                cursor.execute(query)
-                results = cursor.fetchall()
-        else: 
-            return {"prompt": query, 
-                    "answer": "It seams like you are trying to modify the database. This is not allowed."}
+        # with connection.cursor() as cursor:
+        #     if self.check_query(query):
+        #         cursor.execute(query)
+        #         results = cursor.fetchall()
+        #     else: 
+        #         return {"prompt": query, 
+        #                 "answer": "It seams like you are trying to modify the database. This is not allowed."}
+
+        while step < 10:
+            print("PROMPTING...")
+            try :
+                with connection.cursor() as cursor:
+                    if self.check_query(query):
+                        cursor.execute(query)
+                        results = cursor.fetchall()
+                    else: 
+                        return {"prompt": query, 
+                                "answer": "It seams like you are trying to modify the database. This is not allowed."}
+                break;
+
+            except Exception as e:
+                data = self.refresh_context(e)
+                step += 1
+                continue
 
         final_context = self.give_final_context(results, self.prompt)
 
@@ -128,6 +147,11 @@ class AIAgent:
                 messages = final_context
                 )
         return {"prompt": query, "answer": final_response.choices[0].message.content}
+
+    def refresh_context(self, data):
+        prompt = {}
+        prompt["role"] = "system"
+        prompt["content"] = f"you had the following error is {data}"
 
 
     def make_context(self, model):
@@ -178,15 +202,29 @@ class AIAgent:
 
         prompt = {}
         prompt["role"] = "user"
-        prompt["content"] = f"Give me the unique SQL query to answer this question related to the database given in the context (system): {input_text}"
+        prompt["content"] = f"Give me a SQL command answering the following question : {input_text}"
+        # prompt["content"] = f"Give me a SQL query to answer this question related to the database given in the context (system): {input_text}"
 
         data.append(prompt)
         return data
 
+    def add_user_in_context(self, username):
+        print("USERNAME", username)
+        prompt = {}
+        prompt["role"] = "system"
+        prompt["context"] = " Always identify users by their email. If a certain particular user is asked for, look for it's email. The user prompting you have the following email : " + username
+        return prompt
 
-    def perform(self, input_text):
+    def perform(self, input_text, username):
         data = self.process_input(input_text)
+        print("------------------------------")
+        print("TYPE OF ",type(username))
+        if len(username) != 0:
+            print("USERNAME", username)
+            usercontext = self.add_user_in_context(username)
+            data.append(usercontext)
         results = self.pipeline(data)
+        print("------------------------------")
         return results
 
 
