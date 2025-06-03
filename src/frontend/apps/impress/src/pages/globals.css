@@ -83,7 +83,7 @@ nextjs-portal {
   right: 20px;
   gap: 20px;
   z-index: 9999;
-  font-family: sans-serif;
+  font-family: var(--c--theme--font--families--base);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -234,6 +234,7 @@ nextjs-portal {
   border-radius: 6px;
   border: 1px solid #ccc;
   font-size: 14px;
+  font-family: var(--c--theme--font--families--base);
 }
 
 .chat-send-btn {
@@ -279,4 +280,64 @@ nextjs-portal {
   to {
     opacity: 1;
   }
+}
+
+/* AI Agent modal - Geek mode */
+.geek.floating-chat-container {
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.geek .chat-header,
+.geek .chat-avatar,
+.geek .chat-messages,
+.geek .chat-bubble {
+  background: transparent;
+}
+
+.geek .chat-window {
+  border-radius: 0;
+  width: 500px;
+  height: 400px;
+  background: var(--c--components--button--primary--background--color);
+}
+
+.geek .chat-bubble {
+  border-radius: 0;
+  box-shadow: none;
+  max-width: none;
+  color: #fff;
+  padding: 3px 0;
+}
+
+.geek .chat-bubble.user {
+  color: #69fc64
+}
+
+.geek .chat-bubble.agent::before {
+  content: "@the_gr : "
+}
+
+.geek .chat-bubble.user::before {
+  content: "@me : "
+}
+
+.geek .chat-bubble.agent.writing {
+  padding: 3px 0;
+  align-items: center;
+}
+
+.geek .chat-bubble.agent.writing span {
+  height: 1px;
+  border-radius: 0;
+}
+
+.geek .chat-input-container {
+  border: none;
+}
+
+.geek .chat-input-container,
+.geek .chat-input {
+  background: #333;
+  color: #fff;
+  border: none;
 }

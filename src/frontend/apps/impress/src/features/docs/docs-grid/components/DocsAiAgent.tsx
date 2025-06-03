@@ -18,6 +18,8 @@ export default function FloatingChat() {
   const [messages, setMessages] = useState(Array<Message>);
   const [input, setInput] = useState(String);
   const [agentWriting, setAgentWriting] = useState(Boolean);
+  const [geekViewCounter, setGeekViewCounter] = useState(0);
+  const [geekViewEnabled, setGeekViewEnabled] = useState(false);
 
   // Refs
   const chatMessageEl = React.useRef<HTMLDivElement>(null);
@@ -44,11 +46,15 @@ export default function FloatingChat() {
               answer: responseAI.answer,
               query: responseAI.query,
             });
-            console.log('RESPONSE ANSWER : ', responseAI.answer);
           }
         })
         .catch((err) => {
-          console.error(err);
+          handleAgentAnswer({
+            answer:
+              "Sorry, I didn\'t understand or the request didnt work ! Please try again.",
+            query: '',
+          });
+          console.error('Back-end error : ' + err);
         });
 
       setInput('');
@@ -87,13 +93,43 @@ export default function FloatingChat() {
     scrollMessagesToBottom();
   }, [messages]);
 
+  // Trigger hidden geek view
+  useEffect(() => {
+    // If user click AI agent 5 times,
+    // enable geek view
+    if (geekViewCounter == 3) {
+      setGeekViewEnabled(true);
+      setGeekViewCounter(0);
+    }
+
+    // Reset geek view when displayed
+    if (geekViewEnabled && geekViewCounter == 1) {
+      setGeekViewEnabled(false);
+      setGeekViewCounter(0);
+    }
+  }, [geekViewCounter, geekViewEnabled]);
+
   return (
-    <div className="floating-chat-container ">
+    <div
+      className={
+        geekViewEnabled
+          ? 'floating-chat-container geek'
+          : 'floating-chat-container'
+      }
+    >
       {open && (
         <div className="chat-window">
           <div className="chat-header">
             <div className="chat-header-left">
-              <div className="chat-avatar">AI</div>
+              <div
+                className="chat-avatar"
+                onClick={() => setGeekViewCounter(geekViewCounter + 1)}
+                onKeyDown={() => {}}
+                role="button"
+                tabIndex={0}
+              >
+                {geekViewEnabled ? '👾' : 'AI'}
+              </div>
               <span className="chat-title">The GR</span>
             </div>
             <button
@@ -150,7 +186,7 @@ export default function FloatingChat() {
       )}
 
       <button className="floating-button" onClick={() => setOpen(true)}>
-        💬
+        {geekViewEnabled ? '👾' : '💬'}
       </button>
     </div>
   );
