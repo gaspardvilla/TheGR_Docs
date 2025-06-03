@@ -90,6 +90,20 @@ class AIAgent:
         return messages
 
 
+    def check_query(self, query):
+        if "DELETE" in query:
+            return False
+        if "INSERT" in query:
+            return False
+        if "UPDATE" in query:
+            return False
+        if "DROP" in query:
+            return False
+        if "ALTER" in query:
+            return False
+        return True
+
+
     def pipeline(self, data):
         url = "https://albert.api.etalab.gouv.fr/v1"
         key = "sk-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo4NDE2LCJ0b2tlbl9pZCI6MTQ4NSwiZXhwaXJlc19hdCI6MTc4MDM1MTIwMH0.7VHhWl1KUfMCfxwZ_bTVS2McIsY3qsP5Gcc6dQqb6Wg"
@@ -99,9 +113,13 @@ class AIAgent:
         query = self.extract_sql(response.choices[0].message.content)
         results = []
 
-        with connection.cursor() as cursor:
-            cursor.execute(query);
-            results = cursor.fetchall();
+        if self.check_query(query):
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                results = cursor.fetchall()
+        else: 
+            return {"prompt": query, 
+                    "answer": "It seams like you are trying to modify the database. This is not allowed."}
 
         final_context = self.give_final_context(results, self.prompt)
 
@@ -153,20 +171,24 @@ class AIAgent:
 
         return messages
 
-
-    def perform(self, text):
+    
+    def process_input(self, input_text):
         data = self.get_prompt_context()
-        self.prompt = text
+        self.prompt = input_text
 
         prompt = {}
         prompt["role"] = "user"
-        prompt["content"] = text
+        prompt["content"] = f"Give me the unique SQL query to answer this question related to the database given in the context (system): {input_text}"
 
         data.append(prompt)
+        return data
 
-        result = self.pipeline(data)
-        return result
-        # return {"answer" : result }
+
+    def perform(self, input_text):
+        data = self.process_input(input_text)
+        results = self.pipeline(data)
+        return results
+
 
 class AIService:
     """Service class for AI-related operations."""
@@ -208,4 +230,3 @@ class AIService:
         language_display = enums.ALL_LANGUAGES.get(language, language)
         system_content = AI_TRANSLATE.format(language=language_display)
         return self.call_ai_api(system_content, text)
-
