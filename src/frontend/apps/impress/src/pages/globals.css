@@ -81,8 +81,12 @@ nextjs-portal {
   position: fixed;
   bottom: 20px;
   right: 20px;
+  gap: 20px;
   z-index: 9999;
   font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .floating-button {
@@ -180,12 +184,38 @@ nextjs-portal {
   background-color: var(--c--components--button--primary--background--color);
   color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  gap: 5px;
+  animation: appear .5s ease;
 }
 
 .chat-bubble.user {
   background: white;
   color: #000;
   margin-left: auto;
+}
+
+.chat-bubble.agent.writing {
+  max-width: auto;
+  display: flex;
+  justify-content: center;
+  display: inline-flex;
+  padding: 10px 12px;
+}
+.chat-bubble.agent.writing span:nth-of-type(2) { animation-delay: .25s; }
+.chat-bubble.agent.writing span:nth-of-type(3) { animation-delay: .5s; }
+.chat-bubble.agent.writing span {
+  width: 7px;
+  height: 7px;
+  display: block;
+  border-radius: 50%;
+  background-color: #ccc;
+  animation: agent-writing 1s infinite;
+}
+
+.chat-bubble.agent.writing.hidden {
+  display: none;
 }
 
 .chat-button:hover {
@@ -217,6 +247,11 @@ nextjs-portal {
   font-size: 16px;
 }
 
+.chat-input:focus {
+  outline: none;
+  border-color: var(--c--components--button--primary--background--color);
+}
+
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -225,5 +260,23 @@ nextjs-portal {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes agent-writing {
+  from {
+    opacity: .5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
